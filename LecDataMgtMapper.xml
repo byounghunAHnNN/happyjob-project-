@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="kr.happyjob.study.pfssst.dao.LecDataMgtDao">
+ 
+<select id="listlecDataMgtfirst" resultType="kr.happyjob.study.pfssst.model.LecDataMgtfirstModel">
+               select   li.li_nm
+                       ,li.li_no
+      
+                  from tb_lecinfo li 
+               where li.loginID = #{loginID}                
+          <if test="(searchvalue != null) and (!searchvalue.equals(''))">
+            <choose>
+               <when
+                  test="searchtype eq 'name'.toString()">
+                  and li.li_nm = #{searchvalue}
+               </when>
+               <when
+                  test="searchtype eq 'number'.toString()">
+                  and li.li_no LIKE CONCAT('%', #{searchvalue}, '%')
+               </when>
+
+               <otherwise>
+                  AND (
+                               li.li_nm = #{searchvalue}
+                            or li.li_no LIKE CONCAT('%', #{searchvalue}, '%')
+                          )                  
+               </otherwise>
+            </choose>
+         </if>
+                  limit #{startnum},#{pagesize}                  
+       </select>
+       
+     <select id="firstsearchlistcnt" resultType="int">
+     
+               select count(*)
+               
+                  from tb_lecinfo li 
+                 where li.loginID = #{loginID}        
+          <if test="(searchvalue != null) and (!searchvalue.equals(''))">
+            <choose>
+               <when
+                  test="searchtype eq 'name'.toString()">
+                  and li.li_nm = #{searchvalue}
+               </when>
+               <when
+                  test="searchtype eq 'number'.toString()">
+                  and li.li_no LIKE CONCAT('%', #{searchvalue}, '%')
+               </when>
+
+               <otherwise>
+                  AND (
+                               li.li_nm = #{searchvalue}
+                            or li.li_no LIKE CONCAT('%', #{searchvalue}, '%')
+                          )                  
+               </otherwise>
+            </choose>
+         </if>            
+     </select>
+
+    <select id="listlecDataMgt" resultType="kr.happyjob.study.pfssst.model.LecDataMgtModel">
+    
+								select le.le_title
+								      ,le.le_date
+								      ,le.le_nm
+								      ,le.le_no
+								      ,le.li_no
+								      ,li.li_nm
+								from tb_lecdata le
+								  inner join tb_lecinfo li on le.li_no = li.li_no
+								<where>
+								 <if test="(li_no != null) and (!li_no.equals(''))">
+		         				and le.li_no = #{li_no}
+								</if>
+								
+								<if test="(sdate != null) and (!sdate.equals(''))">
+								and <![CDATA[le.le_date >= #{sdate}]]>
+		         				</if>
+									
+								<if test="(edate != null) and (!edate.equals(''))">
+		         				and <![CDATA[le.le_date <= #{edate}]]>
+								</if>
+									
+								</where>
+			   					limit #{startnum},#{pagesize}
+    </select>
+    
+    <select id="searchlistcnt" resultType="int">
+						select count(*)
+						
+								from tb_lecdata le
+								  inner join tb_lecinfo li on le.li_no = li.li_no
+                         where le.li_no = #{li_no}
+    </select>
+    
+    <select id="selectFileupload" resultType="kr.happyjob.study.pfssst.model.LecDataMgtModel">
+    
+    	select
+                   lc.le_no
+                 , lc.li_no
+                 , lc.le_title
+                 , lc.le_nm
+                 , lc.le_contents
+                 , at.att_no
+                 , at.att_ori
+                 , at.att_nli
+                 , at.att_mul
+                 , at.att_size
+          from tb_lecdata lc
+            left outer join tb_attachment at on at.att_no = lc.att_no
+         where lc.le_no = #{le_no}
+    
+    
+    </select>
+    
+    
+        <insert id="insertFileupload">
+         <selectKey resultType="int" keyProperty="nle_no" order="BEFORE">
+            select ifnull(max(le_no),0) + 1  from tb_lecdata 
+        </selectKey> 
+        
+    		insert into tb_lecdata
+    					 (
+    					   le_no
+    					  ,li_no
+    					  ,le_title
+    					  ,le_date
+    					  ,le_nm    					  
+    					  ,le_contents
+    					  ,att_no  
+    					 ) values (
+    					   #{nle_no}
+    					 , #{li_no}
+    					 , #{titlefile}
+    					 , now()
+    					 , #{le_nm} 
+                         , #{contfile} 
+                         <if test="fileyn eq 'N'.toString()">	
+                         , 0
+                         </if>
+                         <if test="fileyn eq 'Y'.toString()">
+                         , (select ifnull(max(att_no),1)  from tb_attachment )
+                         </if>
+    					 )
+         
+  </insert>
+  
+		      <update id="updateFileupload">
+		          update tb_lecdata                     
+		               set le_title  =  #{titlefile}          
+		                  , le_contents=  #{contfile} 
+		                  <if test="fileyn eq 'N'.toString()">
+		                  , att_no  = 0
+		                  </if>
+		                  <if test="fileyn eq 'Y'.toString()">
+		                  , att_no  = (select ifnull(max(att_no),0) from tb_attachment )
+		                  </if>
+		          where le_no = #{le_no} 
+		    </update>
+  
+         <delete id="deleteFileinfobybdno">
+         delete from tb_attachment
+           where att_no = (
+                                       select att_no 
+                                        from tb_lecdata
+                                       where le_no = #{le_no}            
+                                 )
+    	 </delete> 
+    	 
+    	 
+    	 <insert id="insertFileinfo">
+         <selectKey resultType="int" keyProperty="att_no" order="BEFORE">
+            select ifnull(max(att_no), 0)+1 from tb_attachment 
+        </selectKey> 
+       
+          insert into tb_attachment
+                        (
+                           att_no          
+                         , att_ori   
+                         , att_date   
+                         , att_nli
+                         , att_mul  
+                         , att_size
+                        ) values (
+                           #{att_no} 
+                         ,#{file_nm} 
+                         ,now()
+                         ,#{loc_file_loc} 
+                         ,#{file_loc} 
+                         ,#{file_size} 
+                        )
+    </insert>
+    
+         <delete id="deleteFileupload">
+         
+          delete 
+            from tb_lecdata 
+             where li_no = #{li_no}
+          	   and le_no = #{le_no}
+           
+    </delete> 
+    	 
+    	 
+  
+</mapper>

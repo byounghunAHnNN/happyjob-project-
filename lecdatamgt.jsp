@@ -1,283 +1,284 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8"
 	pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
-
-
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
 <!-- abc -->
 <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-<title>학습자료관리 </title>
+<title>파일업로드 샘플</title>
 <!-- sweet alert import -->
 <script src='${CTX_PATH}/js/sweetalert/sweetalert.min.js'></script>
 <jsp:include page="/WEB-INF/view/common/common_include.jsp"></jsp:include>
 <!-- sweet swal import -->
 
 <script type="text/javascript">
-
-
-    //페이지 관리 
     
     var pagesize = 5;
     var pagenumsize = 5;
+    var listlecdatavue;
+    var sraecharea;
+    var listlecdatavuetwo;
+    var filepopup;
 
     
 	/** OnLoad event */ 
-		$(function() {
+	$(function() {
 		
-		// 게시판 조회
-		fListlecDataMgtfirst();
+		init();
+				
+		listsearch();
+		
 		
 		fRegisterButtonClickEvent();
-		
-		
 	});
-	
-		/** 버튼 이벤트 등록 */
-		function fRegisterButtonClickEvent() {
-			$('a[name=btn]').click(function(e) {
-				e.preventDefault();
+    
+	/** 버튼 이벤트 등록 */
+	function fRegisterButtonClickEvent() {
+		$('a[name=btn]').click(function(e) {
+			e.preventDefault();
 
-				var btnId = $(this).attr('id');
-				
-				switch (btnId) {
-					case 'btnSearch' : 
-						fListlecDataMgtfirst();  //누르면 jquery실행하라는 의미 
-						break;
-					case 'btnSearchfile' : 
-						fListlecDataMgt();  //누르면 jquery실행하라는 의미 
-						break;
-					case 'btnSavefile' : 
-						fsavefileuploadatt();
-						break;		
-					case 'btnDeletefile' :
-						$("#action").val("D");
-						fsavefileuploadatt();
-						break;		
-					case 'btnClose' :
-						gfCloseModal();
-						break;
-					case 'btnClosefile' :
-						gfCloseModal();
-						break;
-					case 'btnRevisefile' :
-						gfCloseModal();
-						break;
-				}
-			});
-		}
-						
-		
-	
-		
-		
-		
-		//학습자료관리 리스트 페이지관리 
-		function fListlecDataMgtfirst(clickpagenum) {
+			var btnId = $(this).attr('id');
 			
-			clickpagenum = clickpagenum || 1;
-			
-			var param = {
-					searchtype : $("#searchtype").val(),
-					searchvalue : $("#searchvalue").val(),
-					clickpagenum : clickpagenum,
-					pagesize : pagesize
-
-			};
-	    	
-			var firstsearchcallback = function(returndata) {
-				
-				console.log("returndata : " + returndata);
-				
-				firstsearchcallbackprocess(returndata,clickpagenum);
-				
+			switch (btnId) {
+				case 'btnSearch' :
+					listsearch();
+					break;
+				case 'btnSave' :
+					fsavefileupload();
+					break;	
+				case 'btnDelete' :
+					//$("#action").val("D");
+					nofilepopup.action = "D";	
+					fsavefileupload();
+					break;	
+				case 'btnSavefile' :
+					fsavefileuploadatt();
+					break;		
+				case 'btnDeletefile' :
+					$("#action").val("D");
+					fsavefileuploadatt();
+					break;		
+				case 'btnClose' :
+					gfCloseModal();
+					break;
+				case 'btnClosefile' :
+					gfCloseModal();
+					break;
 			}
-			
-			callAjax("/supportD/listlecDataMgtfirst.do", "post", "text", true, param, firstsearchcallback);			
-		}
+		});
+	}
+	
+	function init() {
 		
+		listlecdatavue = new Vue({
+		                                      el : "#divfileuploadList",
+			                               data : {
+			                            	           listitem : [],
+		                                               pagenavi : ""			                                 
+			                               },
+			                               methods : {
+			                            	   detailview : function(no) {
+			                            		        //alert(no);
+			                            		        fListclick(no);	 
+			                            	   }
+			                               }
+			                               
+		})
 		
-		//  강의명 returndata
-		function firstsearchcallbackprocess(returndata,clickpagenum) {
+		sraecharea = new Vue({
+		                                    el : "#sraecharea",
+		                                 data : {
+		                                	   searchKey : "",
+		                                	 searchvalue : ""
+		                                 }     
 			
-			console.log("returndata : " + returndata );
-			
-			$("#listlecDataMgtfirst").empty().append(returndata); //초기화 시켜주고 returndata값을 listLecdatamgt에 넘겨준다. 
-			
-			var totalcnt = $("#firstsearchlistcnt").val();
-			var li_no = $("#li_no").val();
-			var loginID = $("#loginID").val();
-			
-			console.log("totalcnt : " + totalcnt);
-			console.log(" li_no : " + li_no);
-			console.log(" loginID : " + loginID);
-			
-			var paginationHtml = getPaginationHtml(clickpagenum, totalcnt, pagesize, pagenumsize, 'fListlecDataMgtfirst');
-			
-			console.log("paginationHtml : " + paginationHtml);
-			//swal(paginationHtml);
-			$("#listlecDataMgtfirstPagination").empty().append( paginationHtml );
-			
-			$("#hclickpagenum").val(clickpagenum);  // hclickpagenum => 히든값.
-		}
+		})
 		
-		//강의 파일 리스트 
-		function fListclick(no) {
-			$("#li_no").val(no);
-			
-			fListlecDataMgt();
-		}
+		listlecdatavuetwo = new Vue({
+								            el : "#divfileuploadListtwo",
+								         data : {
+								      	           listitem : [],
+								                   pagenavi : ""			                                 
+								         },
+		                            	   detailviewfile : function(no) {
+	                            		        alert(no);
+	                            		        fn_selectonefile(no);	
+	                            	       }
+								         
+								})
 		
-	//제목 작성일 작성자 리턴파일.  
-	function fListlecDataMgt(clickpagenum) {
+				filepopup = new Vue({	
+											el : "#layer2",
+										  data : {
+							            	          titlefile : "",
+							            	          contfile: "",
+							            	          disdownload: "",
+							               	          dispreview: "",
+							            	          action : "",
+							            	          no : 0,
+							            	          delshow : false
+											  
+										  }
+				
+					
+				})
+				
+				
+		
+	}
+	//첫번째 리스트 뿌린부분. 
+	function listsearch(pagenum) {
+		
+		pagenum = pagenum || 1;
+		
+		console.log("sraecharea.searchKey : " + sraecharea.searchKey + " sraecharea.searchvalue : " + sraecharea.searchvalue);
 
+		var param = {
+				pagenum : pagenum,
+				pagesize : pagesize,
+				searchtype : sraecharea.searchKey, //검색조건 위해 사용. 
+				searchvalue : sraecharea.searchvalue // 검색 위해 사용. 
+		}
 		
-		clickpagenum = clickpagenum || 1;
+		var listcallback = function(returndata) {
+			
+			console.log(  "listcallback " + JSON.stringify(returndata) );
+			
+			listlecdatavue.listitem = returndata.firstsearchlist;
+			
+			var paginationHtml = getPaginationHtml(pagenum, returndata.firstsearchlistcnt, pagesize, pagenumsize, 'listsearch');
+			console.log("paginationHtml : " + paginationHtml);
+			
+			listlecdatavue.pagenavi = paginationHtml;
+			
+		}
 		
+		callAjax("/supportD/listlecDataMgtfirstvue.do", "post", "json", true, param, listcallback);
+	}
+ 
+/* 	function fn_selectone(no) {
+		
+		var param = { li_no : no }
+		
+		$("#le_no").val(no);
+		
+		
+		var selectoncallback = function(returndata) {
+			console.log(  "listcallback " + JSON.stringify(returndata) );
+			
+			listsearchtwo(returndata.searchone);
+		}
+		
+		callAjax("/supportD/selectFileupload.do", "post", "json", true, param, selectoncallback);
+		
+	}  */
+	
+	//강의 파일 리스트 클릭 함수 (두번째리스트가 나옴.) 
+	function fListclick(no) {
+		$("#li_no").val(no);
+		
+		listsearchtwo();
+	}
+	// 두번째 리스트 부분 
+	function listsearchtwo(pagenum) {
+		
+		pagenum = pagenum || 1;	
 		
 		var li_no = $("#li_no").val();
-		
+		var le_nm = $("#le_nm").val();
 		
 		var sdate = $("#sdate").val();
 		var edate = $("#edate").val();
 		
+		console.log("sraecharea.searchKey : " + sraecharea.searchKey + " sraecharea.searchvalue : " + sraecharea.searchvalue);
+
 		var param = {
-				
-				clickpagenum : clickpagenum,
-				pagesize : pagesize	,
-				pagenumsize : pagenumsize,
+				pagenum : pagenum,
+				pagesize : pagesize,
+				searchtype : sraecharea.searchKey, //검색조건 위해 사용. 
+				searchvalue : sraecharea.searchvalue, // 검색 위해 사용.
 				li_no : li_no,
 				sdate : sdate,
-				edate : edate
-
-		};
-    	
-		var searchcallback = function(returndata) {
+				edate : edate,
+				le_nm : le_nm
+		}
+		
+		var listcallbacktwo = function(returndata) {
 			
-			console.log("returndata : " + returndata);
+			console.log(  "listcallbacktwo " + JSON.stringify(returndata) );
 			
-			searchcallbackprocess(returndata,clickpagenum);
+			listlecdatavuetwo.listitem = returndata.searchlist;
+			var paginationHtml = getPaginationHtml(pagenum, returndata.searchlistcnt, pagesize, pagenumsize, 'listsearchtwo');
+			console.log("paginationHtml : " + paginationHtml);
+			
+			listlecdatavuetwo.pagenavi = paginationHtml;
 			
 		}
 		
-		callAjax("/supportD/listlecDataMgt.do", "post", "text", true, param, searchcallback);			
-	}
-	
-	//  학습자료관리 returndata
-	function searchcallbackprocess(returndata,clickpagenum) {
-
-		console.log("returndata : " + returndata );
-		console.log("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ : "  );
-		
-		$("#listlecDataMgt").empty().append(returndata); //초기화 시켜주고 returndata값을 listLecdatamgt에 넘겨준다. 
-		
-		var totalcnt = $("#searchlistcnt").val();
-		var li_no = $("#li_no").val();
-		var loginID = $("#loginID").val();
-		
-		console.log("totalcnt : " + totalcnt);
-		console.log(" li_no : " + li_no);
-		console.log(" loginID : " + loginID);
-		
-		var paginationHtml = getPaginationHtml(clickpagenum, totalcnt, pagesize, pagenumsize, 'fListlecDataMgt');
-		
-		console.log("paginationHtml : " + paginationHtml);
-		//swal(paginationHtml);
-		$("#comnfileuploadPagination").empty().append( paginationHtml );
-		
-		$("#hclickpagenum").val(clickpagenum);  // hclickpagenum => 히든값.
+		callAjax("/supportD/listlecDataMgtvue.do", "post", "json", true, param, listcallbacktwo);
 	}
 	
 	function fPopModalfile() {
 		
-        $("#action").val("I");
-        
-        
-        var li_no = $("#li_no").val();
-		console.log("~~~~~~~~~~~~~~~~~~~~~~~~"+li_no);
-		if(li_no==null || li_no==""){
+		
+		
+		
+		var li_no = $("#li_no").val();
+		
+		if(li_no == null || li_no==""){
 			alert("등록할 강의번호를 선택해주세요");
 			return 
 		}
+		
 		fn_forminitfile();
-		
-		console.log(" li_no : " + $("#li_no").val());
-		
-		gfModalPop("#layer2");
-		
+		gfModalPop("#layer2");		
 	}
 	
-	
-	
-	
-	function fn_forminitfile(object) {
+ 	function fn_forminitfile(object) {
 		
 		if (object == null || object=="") {
-			$("#titlefile").val("");
-			$("#contfile").val("");
-			$("#loginID").val("");	
-			$("#li_nm").val("");
+			filepopup.titlefile = "";
+			filepopup.contfile = "";
+			filepopup.no = "";				
+			filepopup.disdownload = "";		
+			filepopup.action = "I";
 			console.log(" case1" );
-			$("#btnDeletefile").hide();			
-			$("#upfile").val("");			
-			$("#filedownloaddiv").empty();
-			$("#title").focus();
+			$("#action").val("I");
 			
+			filepopup.delshow = false;
 		} else {
-			$("#li_no").val(object.li_no);
-			$("#le_no").val(object.le_no);
-			$("#titlefile").val(object.le_title);
-			$("#contfile").val(object.le_contents);
-			$("#loginID").val("");
-			console.log(" case2" );
-			$("#btnDeletefile").show();
-			$("#li_nm").val("");	
 			
-			
-			var fileyn = "";
-			var inhtml = "";
-			
-			if (object.att_ori == null || object.att_ori =="") {
-				$("#filedownloaddiv").empty();
-				// $("#filepewviewdiv").empty();
-			} else {
-				inhtml = "<a href='javascript:download()'>" + object.att_ori + "("  + object.att_size+ ")</a>"; 
-				$("#filedownloaddiv").empty().append(inhtml);
-				
-			}
-		
-		}		
-	}	
+			filepopup.titlefile = object.le_title;
+			filepopup.contfile = object.le_contents;
+			filepopup.no = object.li_no;
+			filepopop.no = object.le_no;
+			filepopup.action = "U";			
+			$("#action").val("U");
+			console.log(" case2" );			
+			filepopup.delshow = true;
 	
-	function fselectonefile(no) {
+		}
+	}
+ 	
+	function fn_selectonefile(no) {
 		
-		var param = { le_no : no };
-		
-		$("#le_no").val(no);
-
-		// $("#li_no").val(no);
-		
-		
-		var selectonecallback = function( selectonersn ) {
-			console.log(JSON.stringify(selectonersn));
-			//console.log(JSON.stringify(selectonersn.searchone));
+		var param = {
+				le_no : no				
+		}
+		var selectoncallback = function(returndata) {
+			console.log(  "listcallback " + JSON.stringify(returndata) );
 			
-			$("#action").val("U");			
-			fn_forminitfile(selectonersn.searchone);
+			fn_forminitfile(returndata.searchone);
 			
 			gfModalPop("#layer2");
 		}
 		
-		callAjax("/supportD/selectFileupload.do", "post", "json", true, param, selectonecallback);
-	}
-		
-
+		callAjax("/supportD/selectFileupload.do", "post", "json", true, param, selectoncallback);		
+	} 
 	
-	
-	function fsavefileuploadatt() {
+ 	function fsavefileuploadatt() {
 		
 		var frm = document.getElementById("myForm");
 		frm.enctype = 'multipart/form-data';
@@ -285,13 +286,8 @@
 		
 		
 		
+		
 		var savecallback= function(rtn) {
-			
-			//$("#li_no").val("");
-			//$("#li_no").val("li_no");
-			
-			var no=$("#li_no").val();
-			fListclick(no);
 			console.log(JSON.stringify(rtn));
 			
 			alert("저장 되었습니다.");
@@ -300,31 +296,15 @@
 			
 			var savepageno = 1;
 			
-			if($("#action").val() == "U") {
-				savepageno = $("#hclickpagenum").val();
-			}
-						
 			
-			fListlecDataMgtfirst(savepageno);
+			listsearch(savepageno);
 			
 		}
 		
-		console.log(" fsavefileuploadatt : " + $("#li_no").val());
+		callAjaxFileUploadSetFormData("/supportD/saveFileuploadatt.do", "post", "json", true, dataWithFile, savecallback);
 		
-	    callAjaxFileUploadSetFormData("/supportD/saveFileuploadatt.do", "post", "json", true, dataWithFile, savecallback);
-	}
-	
-	function download() {
-		
-		var params = "<input type='hidden' name='le_no' value='"+ $("#le_no").val() +"' />";
-
-		jQuery(
-				"<form action='/supportD/downloadfile.do' method='post'>"
-						+ params + "</form>").appendTo('body').submit().remove();
-	}
-
-	
-	
+	} 
+	//   파일 미첨부   팝업 처리  끝	
 </script>
 
 </head>
@@ -336,7 +316,6 @@
 	<input type="hidden" id="le_no" name="le_no"  value="" />
 	<input type="hidden" id="loginID" name="loginID" value =""/>
 	<input type="hidden" id="li_nm" name="li_nm"  value="" />
-	
 	
 	<!-- 모달 배경 -->
 	<div id="mask"></div>
@@ -360,40 +339,35 @@
 
 						<p class="Location">
 							<a href="../dashboard/dashboard.do" class="btn_set home">메인으로</a> <span
-								class="btn_nav bold">학습지원</span> <span class="btn_nav bold">학습자료관리</span> <a href="../system/comnCodMgr.do" class="btn_set refresh">새로고침</a>
+								class="btn_nav bold">학습관리</span> <span class="btn_nav bold">게시판</span> <a href="../system/comnCodMgr.do" class="btn_set refresh">새로고침</a>
 						</p>
 
 						<p class="conTitle">
-							<span>학습자료관리</span> <span class="fr"> 
+							<span>게시판</span> <span class="fr"> 
 							</span>
 						</p>
-						<table style="margin-top: 10px" width="100%" cellpadding="5" cellspacing="0" border="1"  align="left"   style="collapse; border: 1px #50bcdf;">
-	                        <tr style="border: 0px; border-color: blue">
-	                           <td width="50" height="25" style="font-size: 100%; text-align:left; padding-right:25px;">
+						
+						<div id="sraecharea">
+							<table style="margin-top: 10px" width="100%" cellpadding="5" cellspacing="0" border="1"  align="left"   style="collapse; border: 1px #50bcdf;">
+		                        <tr style="border: 0px; border-color: blue">
+		                           <td width="50" height="25" style="font-size: 100%; text-align:left; padding-right:25px;">
 
+										
+			     	                      <select id="searchtype" name="searchtype" style="width: 150px;" v-model="searchKey">
+			     	                            <option value="number" >강의번호</option>
+												<option value="name" >강의명</option>
+										</select> 
 									
-		     	                      <select id="searchtype" name="searchtype" style="width: 150px;" v-model="searchKey">
-											<option value="number" >강의번호</option>
-											<option value="name" >강의명</option>
-									</select> 
-								
-								 
-	     	                       <input type="text" style="width: 300px; height: 25px;" id="searchvalue" name="searchvalue"> 
-	     	                       
-	     	                       
-	     	                                          
-		                          
-		                            
-		                          <a  class="btnType blue" id="btnSearch" name="btn"><span>검  색</span></a>
-		                          
-		                          
-
-	                           </td> 
-	                           
-	                        </tr>
-                        </table> 
+		     	                       <input type="text" style="width: 300px; height: 25px;" id="searchvalue" name="searchvalue"  v-model="searchvalue">                    
+			                            <a href="" class="btnType blue" id="btnSearch" name="btn"><span>검 색</span></a>
+		                           </td> 
+		                           
+		                        </tr>
+	                        </table> 
+                        </div>
                         
-                   	<div class="divfileuploadList">
+                        
+						<div id="divfileuploadList">
 							<table class="col">
 								<caption>caption</caption>
 								<colgroup>
@@ -403,31 +377,34 @@
 	
 								<thead>
 									<tr>
-										<th scope="col">강의번호</th>
+										<th scope="col">강의 번호</th> 
 										<th scope="col">강의명</th>
 									</tr>
 								</thead>
-								
-								<tbody id="listlecDataMgtfirst"></tbody>
+								<tbody id="listfileupload" v-for=" (item, index) in listitem" >
+								     <tr>
+								         <td @click="detailview(item.li_no)"> {{ item.li_no }}  </td>
+								         <td @click="detailview(item.li_nm)"> {{ item.li_nm }}  </td>
+								     </tr>    
+								</tbody>
 							</table>
-							<div class="paging_area"  id="listlecDataMgtfirstPagination"> </div>
+							
+							<div class="paging_area"  id="listlecDataMgtfirstPagination" v-html="pagenavi"> </div>
 						</div>
-						
+
                         <br>  
+                        
                         
                         <p>
                          <span align="left" >
 		                 <span>작성일</span> <input type="date" id="sdate"> ~ <input type = "date" id ="edate"> <a  class="btnType blue" id="btnSearchfile" name="btn"><span>검  색</span></a></span>
-						 <span class="fr"> 
-						 
-		                         
+						 <span class="fr">          
 							    <a	 class="btnType blue" href="javascript:fPopModalfile();" name="modal"><span>자료등록</span></a>
 						 </span>
 						</p>
-						
+						                       
                         
-                        
-						<div class="divfileuploadList">
+						<div id="divfileuploadListtwo">
 							<table class="col">
 								<caption>caption</caption>
 								<colgroup>
@@ -442,16 +419,17 @@
 										<th scope="col">작성일</th>
 										<th scope="col">작성자</th>
 									</tr>
-								</thead>
-								
-								<tbody id="listlecDataMgt"></tbody>
+								</thead>								
+								<tbody id="listlecDataMgt" v-for="(item , index) in listitem">
+									<tr>
+										<td @click="detailviewfile(item.le_title)">{{ item.le_title }}</td>
+										<td>{{ item.le_date }}</td>
+										<td>{{ item.le_nm }}</td>
+									</tr>								
+								</tbody>
 							</table>
+							<div class="paging_area"  id="comnfileuploadPagination" v-html="pagenavi"> </div>
 						</div>
-	
-						<div class="paging_area"  id="comnfileuploadPagination"> </div>
-						
-						
-						
 					</div> <!--// content -->
 
 					<h3 class="hidden">풋터 영역</h3>
@@ -479,38 +457,28 @@
 					<tbody>
 						<tr>
 							<th scope="row">제목 <span class="font_red">*</span></th>
-							<td><input type="text" class="inputTxt p100" name="title" id="title" /></td>
+							<td><input type="text" class="inputTxt p100" name="title" id="title" v-model="title" /></td>
 						</tr>
 						<tr>
-							<th scope="row">작성일 <span class="font_red">*</span></th>
+							<th scope="row">내용 <span class="font_red">*</span></th>
 							<td>
-							     <textarea class="inputTxt p100"	name=date id="date" > </textarea>
+							     <textarea class="inputTxt p100"	name="cont" id="cont" v-model="cont" > </textarea>
 						   </td>
 						</tr>
-						
-						<tr>
-							<th scope="row">작성자 <span class="font_red">*</span></th>
-							<td>
-							     <textarea class="inputTxt p100"	name=name id="name" > </textarea>
-						   </td>
-						</tr>
-						
 					</tbody>
 				</table>
 
 				<!-- e : 여기에 내용입력 -->
-
 				<div class="btn_areaC mt30">
 					<a href="" class="btnType blue" id="btnSave" name="btn"><span>저장</span></a> 
-					<a href="" class="btnType blue" id="btnDelete" name="btn"><span>삭제</span></a> 
+					<a href="" class="btnType blue" id="btnDelete" name="btn" v-show="delshow"><span>삭제</span></a> 
 					<a href=""	class="btnType gray"  id="btnClose" name="btn"><span>취소</span></a>
-					<a href=""	class="btnType gray"  id="btnRevisefile" name="btn"><span>수정</span></a>
 				</div>
 			</dd>
 		</dl>
 		<a href="" class="closePop"><span class="hidden">닫기</span></a>
 	</div>
-
+	
 	<div id="layer2" class="layerPop layerType2" style="width: 600px;">
 		<dl>
 			<dt>
@@ -528,28 +496,34 @@
 					<tbody>
 						<tr>
 							<th scope="row">제목 <span class="font_red">*</span></th>
-							<td><input type="text" class="inputTxt p100" name="titlefile" id="titlefile" /></td>
+							<td><input type="text" class="inputTxt p100" name="titlefile" id="titlefile"  v-model="titlefile"    /></td>
 						</tr>
 						<tr>
 							<th scope="row">내용 <span class="font_red">*</span></th>
 							<td>
-							     <textarea class="inputTxt p100"	name="contfile" id="contfile" > </textarea>
+							     <textarea class="inputTxt p100"	name="contfile" id="contfile" v-model="contfile"  > </textarea>
 						   </td>
 						</tr>
 						<tr>
-							<th scope="row">첨부파일 <span class="font_red">*</span></th>
+						</tr>
+						<tr>
+							<th scope="row">파일 <span class="font_red">*</span></th>
 							<td>
-							     <input type="file" id="upfile" name="upfile"   />
+							     <input type="file" id="upfile" name="upfile"  @change="fpreview(event)" />
 						   </td>
 						</tr>
 						<tr>
 							<th scope="row">파일 다운로드<span class="font_red">*</span></th>
 							<td>
-							     <div id="filedownloaddiv"> </div>
+							     <div id="filedownloaddiv" v-html="disdownload"> </div>
 						   </td>
 						</tr>						
 						<tr>
-													
+							<th scope="row">파일 미리보기<span class="font_red">*</span></th>
+							<td>
+							     <div id="filepewviewdiv" v-html="dispreview"> </div>
+						   </td>
+						</tr>								
 					</tbody>
 				</table>
 
@@ -557,15 +531,16 @@
 
 				<div class="btn_areaC mt30">
 					<a href="" class="btnType blue" id="btnSavefile" name="btn"><span>저장</span></a> 
-					<a href="" class="btnType blue" id="btnDeletefile" name="btn"><span>삭제</span></a> 
+					<a href="" class="btnType blue" id="btnDeletefile" name="btn"  v-show="delshow"><span>삭제</span></a> 
 					<a href=""	class="btnType gray"  id="btnClosefile" name="btn"><span>취소</span></a>
-
 				</div>
 			</dd>
 		</dl>
 		<a href="" class="closePop"><span class="hidden">닫기</span></a>
 	</div>
 	
+
+
 	<!--// 모달팝업 -->
 </form>
 </body>
